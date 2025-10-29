@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\WorkScheduleController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +19,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Employee routes
     Route::get('/employees/statistics', [EmployeeController::class, 'statistics']);
+
     Route::apiResource('employees', EmployeeController::class);
+    Route::apiResource('departments', DepartmentController::class);
+    Route::apiResource('positions', PositionController::class);
 
     // Attendance routes
     Route::prefix('attendance')->group(function () {
