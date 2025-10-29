@@ -1,40 +1,59 @@
 import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, Plus } from "lucide-react";
+import { useEmployees, useDeleteEmployee } from "~/hooks/useEmployee";
+import { DataTable } from "~/components/table/DataTable";
+import { TableSkeleton } from "~/components/table/TableSkeleton";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
-import { Badge } from "~/components/ui/badge";
-import { DataTable } from "~/components/table/DataTable";
-import { useEmployees, useDeleteEmployee } from "~/hooks/useEmployee";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import type { Employee } from "~/types/employee.types";
+import { format } from "date-fns";
 
-export default function EmployeesPage() {
-  const { data: employees = [], isLoading } = useEmployees();
-  const deleteEmployee = useDeleteEmployee();
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+const Employees = () => {
+  const { data, isLoading, isError } = useEmployees();
+  const deleteMutation = useDeleteEmployee();
+
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this employee?")) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const columns: ColumnDef<Employee>[] = [
     {
       accessorKey: "employee_id",
       header: "Employee ID",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("employee_id")}</div>
+      ),
     },
     {
       accessorKey: "first_name",
-      header: "First Name",
-    },
-    {
-      accessorKey: "last_name",
-      header: "Last Name",
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
+      header: "Name",
+      cell: ({ row }) => {
+        const firstName = row.getValue("first_name") as string;
+        const lastName = row.original.last_name;
+        const middleName = row.original.middle_name;
+        return (
+          <div>
+            <div className="font-medium">
+              {firstName} {middleName ? middleName + " " : ""}{lastName}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {row.original.email}
+            </div>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "position",
@@ -58,12 +77,20 @@ export default function EmployeesPage() {
                 ? "default"
                 : status === "inactive"
                 ? "secondary"
-                : "outline"
+                : "destructive"
             }
           >
             {status}
           </Badge>
         );
+      },
+    },
+    {
+      accessorKey: "hire_date",
+      header: "Hire Date",
+      cell: ({ row }) => {
+        const date = row.getValue("hire_date") as string;
+        return date ? format(new Date(date), "MMM d, yyyy") : "N/A";
       },
     },
     {
@@ -81,22 +108,21 @@ export default function EmployeesPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedEmployee(employee);
-                  // TODO: Open edit modal
-                }}
-              >
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(employee.id.toString())}>
+                Copy employee ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Eye className="mr-2 h-4 w-4" />
+                View details
+              </DropdownMenuItem>
+              <DropdownMenuItem>
                 <Pencil className="mr-2 h-4 w-4" />
-                Edit
+                Edit employee
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this employee?")) {
-                    deleteEmployee.mutate(employee.id);
-                  }
-                }}
-                className="text-destructive"
+                className="text-red-600"
+                onClick={() => handleDelete(employee.id)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -110,31 +136,77 @@ export default function EmployeesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-lg">Loading...</div>
+      <div className="space-y-6">
+         <div className="flex items-center justify-between">
+           <div>
+             <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
+             <p className="text-muted-foreground mt-2">
+               Manage your organization's employees
+             </p>
+           </div>
+         </div>
+        <Card>
+          <CardContent className="py-8">
+            <TableSkeleton />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your organization's employees
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-red-600">Failed to load employees</div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Employees</h1>
-          <p className="text-muted-foreground">Manage employee records</p>
+          <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your organization's employees
+          </p>
         </div>
-        <Button onClick={() => {/* TODO: Open create modal */}}>
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={employees}
-        searchKey="first_name"
-        searchPlaceholder="Search by first name..."
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Employee List</CardTitle>
+          <CardDescription>
+            View and manage all employees in your organization
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={data?.data || []}
+            searchKey="first_name"
+            searchPlaceholder="Search by name..."
+          />
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Employees;

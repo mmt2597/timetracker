@@ -1,8 +1,8 @@
 import { Outlet } from "react-router";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
-import Sidebar from "~/components/layouts/sidebar";
-import Navbar from "~/components/layouts/navbar";
+import Sidebar from "~/components/layouts/Sidebar";
+import Navbar from "~/components/layouts/Navbar";
 
 function AuthLayout() {
   return (
